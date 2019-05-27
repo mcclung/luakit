@@ -1,5 +1,5 @@
 /*
- * luaclass.c - useful functions for handling Lua classes
+ * common/luaclass.c - useful functions for handling Lua classes
  *
  * Copyright © 2010 Mason Larobina <mason.larobina@gmail.com>
  * Copyright © 2009 Julien Danjou <julien@danjou.info>
@@ -21,6 +21,7 @@
 
 #include "common/luaclass.h"
 #include "common/luaobject.h"
+#include "common/luayield.h"
 
 #include <stdlib.h>
 
@@ -119,8 +120,8 @@ luaH_typename(lua_State *L, gint idx) {
  * \param meta The methods of the library's metatable.
  */
 void
-luaH_openlib(lua_State *L, const gchar *name, const struct luaL_reg methods[],
-        const struct luaL_reg meta[]) {
+luaH_openlib(lua_State *L, const gchar *name, const struct luaL_Reg methods[],
+        const struct luaL_Reg meta[]) {
     luaL_newmetatable(L, name);                                        /* 1 */
     lua_pushvalue(L, -1);           /* dup metatable                      2 */
     lua_setfield(L, -2, "__index"); /* metatable.__index = metatable      1 */
@@ -182,8 +183,8 @@ luaH_class_setup(lua_State *L, lua_class_t *class,
         lua_class_allocator_t allocator,
         lua_class_propfunc_t index_miss_property,
         lua_class_propfunc_t newindex_miss_property,
-        const struct luaL_reg methods[],
-        const struct luaL_reg meta[]) {
+        const struct luaL_Reg methods[],
+        const struct luaL_Reg meta[]) {
     /* Create the metatable */
     lua_newtable(L);
     /* Register it with class pointer as key in the registry */
@@ -232,13 +233,11 @@ luaH_class_add_signal(lua_State *L, lua_class_t *lua_class,
         const gchar *name, gint ud) {
     luaH_checkfunction(L, ud);
 
-    if (globalconf.verbose) {
-        gchar *origin = luaH_callerinfo(L);
-        debug("add " ANSI_COLOR_BLUE "\"%s\"" ANSI_COLOR_RESET
-                " on %p from " ANSI_COLOR_GREEN "%s" ANSI_COLOR_RESET,
-                name, lua_class, origin);
-        g_free(origin);
-    }
+    gchar *origin = luaH_callerinfo(L);
+    debug("add " ANSI_COLOR_BLUE "\"%s\"" ANSI_COLOR_RESET
+            " on %p from " ANSI_COLOR_GREEN "%s" ANSI_COLOR_RESET,
+            name, lua_class, origin);
+    g_free(origin);
 
     signal_add(lua_class->signals, name, luaH_object_ref(L, ud));
 }
